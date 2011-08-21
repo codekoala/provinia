@@ -16,6 +16,9 @@ class Event(BaseEvent):
     class Meta:
         abstract = True
 
+    def __unicode__(self):
+        return _('for %(person)s') % {'person': self.person}
+
 class OneTimeEvent(BaseEvent):
     person = models.OneToOneField(Person)
 
@@ -35,6 +38,9 @@ class Marriage(Event):
     class Meta:
         ordering = ('date',)
 
+    def __unicode__(self):
+        return _('%(person)s to %(to)s') % {'person': self.person, 'to': self.to}
+
 class Birth(OneTimeEvent):
     pass
 
@@ -53,8 +59,8 @@ class Baptism(OneTimeEvent):
 class Endowment(LDSEvent):
     pass
 
-class SealingToSpouse(Event, LDSEvent):
-    pass
+class SealingToSpouse(Event):
+    temple = models.CharField(_('Temple'), max_length=5)
 
 class SealingToParents(LDSEvent):
     born_in_covenant = models.BooleanField(_('Born in the Covenant'), blank=True)
