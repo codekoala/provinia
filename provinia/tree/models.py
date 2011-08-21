@@ -10,6 +10,8 @@ class Person(models.Model):
         (UNKNOWN, _('Unknown')),
     )
 
+    father = models.ForeignKey('self', related_name='paternal_children', blank=True, null=True)
+    mother = models.ForeignKey('self', related_name='maternal_children', blank=True, null=True)
     given_names = models.CharField(_('Given Names'), max_length=200)
     surname = models.CharField(_('Surname'), max_length=64)
     gender = models.CharField(_('Gender'), max_length=1, choices=GENDERS, default=UNKNOWN)
@@ -18,42 +20,36 @@ class Person(models.Model):
     also_known_as = models.CharField(_('Also Known As'), max_length=64, blank=True)
     nickname = models.CharField(_('Nickname'), max_length=64, blank=True)
     afn = models.CharField(_('Ancestral File Number'), max_length=64, blank=True)
-    children = models.ManyToManyField('self', name=_('Children'), related_name='parents', symmetrical=False)
 
     def __unicode__(self):
         return u'%s /%s/' % (self.given_names, self.surname)
 
     @property
-    def father(self):
-        """Returns this person's father, if known"""
+    def children(self):
+        if not hasattr(self, '_children'):
+            if self.gender == Person.MALE:
+                self._children = self.paternal_children.all()
+            elif self.gender == Person.FEMALE:
+                self._children = self.maternal_children.all()
+            else:
+                # can unknowns have children? ;)
+                self._children = []
 
-        if not hasattr(self, '_father'):
-            try:
-                self._father = self.parents.get(gender=Person.MALE)
-            except Person.DoesNotExist:
-                self._father = None
-
-        return self._father
-
-    @property
-    def mother(self):
-        """Returns this person's mother, if known"""
-
-        if not hasattr(self, '_mother'):
-            try:
-                self._mother = self.parents.get(gender=Person.FEMALE)
-            except Person.DoesNotExist:
-                self._mother = None
-
-        return self._mother
+        return self._children
 
     @property
     def siblings(self):
-        """Returns all children from this person's parents"""
+        """Returns all siblings from both parents of this person"""
 
-        siblings = set()
-        for parent in self.parents.all():
-            siblings.update(parent.children.all())
+        if not hasattr(self, '_siblings'):
+            self._siblings = set()
 
-        siblings.remove(self)
-        return siblings
+            if self.father:
+                self._siblings.update(self.father.children)
+
+            if self.mother:
+                self._siblings.update(self.mother.children)
+
+            self._siblings = sorted(self._siblings, key=lambda p: p.birth)
+
+        return self._siblings
