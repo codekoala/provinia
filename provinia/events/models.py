@@ -1,6 +1,7 @@
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ugettext
 
+from provinia.core.utils import subclasses, decamelcase
 from provinia.tree.models import Person
 
 class BaseEvent(models.Model):
@@ -9,6 +10,20 @@ class BaseEvent(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def get_event_types(cls):
+        """
+        Finds all subclasses of BaseEvent and returns a dictionary
+        """
+
+        if not hasattr(cls, '_subclasses'):
+            cls._subclasses = dict(
+                (sc, ugettext(decamelcase(sc.__name__)))
+                for sc in subclasses(cls)
+            )
+
+        return cls._subclasses
 
 class Event(BaseEvent):
     person = models.ForeignKey(Person, related_name='%(class)s_set')
@@ -64,4 +79,3 @@ class SealingToSpouse(Event):
 
 class SealingToParents(LDSEvent):
     born_in_covenant = models.BooleanField(_('Born in the Covenant'), blank=True)
-
