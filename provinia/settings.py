@@ -117,6 +117,8 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
+    'concurrent_server',
+
     'provinia.core',
     'provinia.tree',
     'provinia.events',
